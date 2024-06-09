@@ -1,7 +1,12 @@
 #ifndef BLUETOOTH_H
 #define BLUETOOTH_H
 
-void setup_bluetooth();
-void send_BT_msg(String msg);
+class Bluetooth
+{
+public:
+    static void setup();
+    static void flush();
+    static void send(String msg);
+};
 
 #endif
