@@ -9,7 +9,7 @@ struct MoistureSensorReadings
     int *values;
     int size = 0;
 
-    String to_string();
+    String toString();
 };
 
 struct DHTSensorReadings
@@ -17,17 +17,18 @@ struct DHTSensorReadings
     float temperature = 0;
     float humidity = 0;
 
-    String to_string();
+    String toString();
 };
 
 class Sensors
 {
 public:
-    bool should_update(unsigned int current_time);
+    void setup();
+    bool shouldUpdate(unsigned int current_time);
     void read();
-    String to_string();
-    MoistureSensorReadings read_moisture();
-    DHTSensorReadings read_dht();
+    String toString();
+    MoistureSensorReadings readMoisture();
+    DHTSensorReadings readDht();
 
     MoistureSensorReadings moisture_readings;
     DHTSensorReadings dht_readings;

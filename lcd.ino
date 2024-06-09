@@ -1,17 +1,31 @@
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "lcd.h";
 
-#define LCD_COLS 16
-#define LCD_ROWS 2
+#define LCD_COLS 20
+#define LCD_ROWS 4
+#define LCD_I2C_ADRESS 0x27
 
-bool lcd_active = false;
-unsigned int display_started_on = 0;
-unsigned const int display_duration = 30 * 1000;
+unsigned const int DISPLAY_DURATION = 30 * 1000;
 
-LiquidCrystal_I2C lcd_I2C(0x27, LCD_COLS, LCD_ROWS);
+bool g_lcd_active = false;
+unsigned int g_display_started_on = 0;
+
+LiquidCrystal_I2C lcd_I2C(LCD_I2C_ADRESS, LCD_COLS, LCD_ROWS);
+
+bool LCD::isLCDPluggedIn()
+{
+    Wire.beginTransmission(LCD_I2C_ADRESS);
+    return Wire.endTransmission() == 0;
+}
 
 void LCD::setup()
 {
+    if (!isLCDPluggedIn())
+    {
+        Serial.println('LCD is not connected');
+        return;
+    }
     lcd_I2C.begin(LCD_COLS, LCD_ROWS);
     lcd_I2C.backlight();
     lcd_I2C.clear();
@@ -27,27 +41,27 @@ void LCD::turn_off()
 {
     lcd_I2C.noDisplay();
     lcd_I2C.noBacklight();
-    lcd_active = false;
+    g_lcd_active = false;
 }
 
 void LCD::wakeUp()
 {
-    if (!lcd_active)
+    if (!g_lcd_active)
     {
         turn_on();
-        display_started_on = millis();
-        lcd_active = true;
+        g_display_started_on = millis();
+        g_lcd_active = true;
     }
 }
 
 bool LCD::isActive()
 {
-    return lcd_active;
+    return g_lcd_active;
 }
 
 bool LCD::shouldPowerDown(unsigned int current_time)
 {
-    return current_time - display_started_on > display_duration;
+    return current_time - g_display_started_on > DISPLAY_DURATION;
 }
 
 void LCD::displaySensors(Sensors sensors)

@@ -11,6 +11,9 @@ struct LCD
     bool isActive();
     bool shouldPowerDown(unsigned int current_time);
     void displaySensors(Sensors sensors);
+
+private:
+    bool isLCDPluggedIn();
 };
 
 #endif

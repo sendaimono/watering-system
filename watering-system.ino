@@ -2,44 +2,52 @@
 #include "sensors.h"
 #include "bluetooth.h"
 #include "lcd.h"
+#include "power_managment.h"
+
+#define SWITCH_PIN 2
 
 Sensors sensors;
 LCD lcd;
-
-const int switchPin = 2;
 
 void power_down()
 {
     delay(1000);
 }
-// void power_down() {
-//   Serial.flush();
-//   Bluetooth::flush();
-//   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 
-//   Serial.begin(9600);
-//   Bluetooth::setup();
+// void power_down()
+// {
+//     Serial.flush();
+//     Bluetooth::flush();
+//     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 
+//     Serial.begin(9600);
+//     Bluetooth::setup();
 // }
 
 void setup()
 {
     Serial.begin(9600);
     Bluetooth::setup();
+    Serial.println("BT is ready.");
     lcd.setup();
-    attachInterrupt(digitalPinToInterrupt(switchPin), wakeUp, RISING);
-
-    Serial.println("Arduino is ready.");
+    Serial.println("LCD is ready.");
+    attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), wakeUp, RISING);
+    Serial.println("Interrupts are ready.");
+    sensors.setup();
+    Serial.println("Sensors are ready.");
+    Managment.setup();
+    Serial.println("Power managment is ready.");
+    Serial.println("Arduino is ready!");
 }
 
 void loop()
 {
     unsigned long current_time = millis();
 
-    if (sensors.should_update(current_time))
+    if (sensors.shouldUpdate(current_time))
     {
         sensors.read();
-        auto formatted_readings = sensors.to_string();
+        auto formatted_readings = sensors.toString();
         Serial.println(formatted_readings);
         Bluetooth::send(formatted_readings);
     }

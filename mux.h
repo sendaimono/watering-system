@@ -10,7 +10,12 @@
 struct MUX
 {
     void selectChannel(int channel);
+    void selectChannel(int channel, uint8_t mode);
     int readMux(int channel);
+    void clearMux();
+
+private:
+    void _selectChannel(int channel);
 };
 
 MUX Mux;

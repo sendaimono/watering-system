@@ -3,6 +3,7 @@
 #include <DHT.h>
 #include "sensors.h";
 #include "mux.h";
+#include "power_managment.h";
 #define DHTTYPE DHT22
 
 const int MOISTURE_IN[] = {0, 1, 2};
@@ -33,21 +34,20 @@ int getMoistureInPercent(int sensor_idx)
 
 MoistureSensorReadings::~MoistureSensorReadings()
 {
-    // Clean up dynamically allocated memory if necessary
-    if (this->values != nullptr)
+    if (values != nullptr)
     {
-        free(this->values);
+        free(values);
     }
-    this->size = 0;
+    size = 0;
 }
 
-String MoistureSensorReadings::to_string()
+String MoistureSensorReadings::toString()
 {
     String output = "";
-    for (int i = 0; i < this->size; i++)
+    for (int i = 0; i < size; i++)
     {
         char buffer[20];
-        sprintf(buffer, "S%d: %d | ", i + 1, this->values[i]);
+        sprintf(buffer, "S%d: %d, ", i + 1, values[i]);
         output += buffer;
     }
 
@@ -58,9 +58,19 @@ String MoistureSensorReadings::to_string()
     return output;
 }
 
+// --- DHTSensorReadings ---
+
+DHTSensorReadings Sensors::readDht()
+{
+    Mux.selectChannel(3, INPUT_PULLUP);
+    dht_readings.humidity = dht.readHumidity();
+    dht_readings.temperature = dht.readTemperature();
+    return dht_readings;
+}
+
 // --- Sensors ---
 
-MoistureSensorReadings Sensors::read_moisture()
+MoistureSensorReadings Sensors::readMoisture()
 {
     moisture_readings.size = MOISTURE_IN_COUNT;
     moisture_readings.values = (int *)malloc(moisture_readings.size * sizeof(int));
@@ -78,26 +88,25 @@ MoistureSensorReadings Sensors::read_moisture()
     return moisture_readings;
 }
 
-DHTSensorReadings Sensors::read_dht()
-{
-    Mux.selectChannel(3);
-    dht_readings.humidity = dht.readHumidity();
-    dht_readings.temperature = dht.readTemperature();
-    return dht_readings;
-}
-
 void Sensors::read()
 {
-    read_dht();
-    read_moisture();
+    Managment.powerUpSensors();
+    readDht();
+    readMoisture();
+    Managment.powerDownSensors();
 }
 
-String Sensors::to_string()
+void Sensors::setup()
 {
-    return "";
+    dht.begin();
 }
 
-bool Sensors::should_update(unsigned int current_time)
+String Sensors::toString()
+{
+    return moisture_readings.toString();
+}
+
+bool Sensors::shouldUpdate(unsigned int current_time)
 {
     return current_time - last_sensor_read_time >= MOISTURE_READ_INTERVAL;
 }
