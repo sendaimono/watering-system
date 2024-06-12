@@ -2,6 +2,8 @@
 
 void MUX::_selectChannel(int channel)
 {
+    Serial.print("Switch to sensor:");
+    Serial.println(channel);
     digitalWrite(MUX_1, channel & 0x01);
     digitalWrite(MUX_2, (channel >> 1) & 0x01);
     digitalWrite(MUX_3, (channel >> 2) & 0x01);
@@ -12,14 +14,14 @@ void MUX::selectChannel(int channel)
 {
     _selectChannel(channel);
     pinMode(MUX_SIG_PIN, INPUT);
-    delay(50);
+    delay(300);
 }
 
 void MUX::selectChannel(int channel, uint8_t mode)
 {
     _selectChannel(channel);
     pinMode(MUX_SIG_PIN, mode);
-    delay(50);
+    delay(300);
 }
 
 int MUX::readMux(int channel)

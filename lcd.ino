@@ -6,82 +6,113 @@
 #define LCD_ROWS 4
 #define LCD_I2C_ADRESS 0x27
 
-unsigned const int DISPLAY_DURATION = 30 * 1000;
-
-bool g_lcd_active = false;
-unsigned int g_display_started_on = 0;
+unsigned const long DISPLAY_DURATION = 30 * 1000;
 
 LiquidCrystal_I2C lcd_I2C(LCD_I2C_ADRESS, LCD_COLS, LCD_ROWS);
 
 bool LCD::isLCDPluggedIn()
 {
+    Wire.begin();
     Wire.beginTransmission(LCD_I2C_ADRESS);
     return Wire.endTransmission() == 0;
 }
 
 void LCD::setup()
 {
+
     if (!isLCDPluggedIn())
     {
-        Serial.println('LCD is not connected');
+        _enabled = false;
+        Serial.println("LCD is not connected");
         return;
     }
+    delay(100);
+    Serial.println("LCD is connected");
+    _enabled = true;
     lcd_I2C.begin(LCD_COLS, LCD_ROWS);
-    lcd_I2C.backlight();
-    lcd_I2C.clear();
+    delay(100);
+    turn_off();
 }
 
 void LCD::turn_on()
 {
+    if (!_enabled)
+        return;
+    Serial.println("turn on LCD");
+    lcd_I2C.clear();
     lcd_I2C.display();
     lcd_I2C.backlight();
 }
 
 void LCD::turn_off()
 {
+    if (!_enabled)
+        return;
+
+    Serial.println("turn off LCD");
     lcd_I2C.noDisplay();
     lcd_I2C.noBacklight();
-    g_lcd_active = false;
+    _is_activated = false;
+}
+
+bool LCD::wokeUp()
+{
+    if (_should_activate)
+    {
+        _is_activated = true;
+        _should_activate = false;
+        _display_started_on = millis();
+        return true;
+    }
+
+    return false;
 }
 
 void LCD::wakeUp()
 {
-    if (!g_lcd_active)
-    {
-        turn_on();
-        g_display_started_on = millis();
-        g_lcd_active = true;
-    }
+    if (_is_activated)
+        return;
+    _should_activate = true;
 }
 
 bool LCD::isActive()
 {
-    return g_lcd_active;
+    return _is_activated;
 }
 
-bool LCD::shouldPowerDown(unsigned int current_time)
+bool LCD::shouldPowerDown(unsigned long current_time)
 {
-    return current_time - g_display_started_on > DISPLAY_DURATION;
+    if (!_is_activated)
+        return false;
+    auto diff = _display_started_on > current_time ? 0 : current_time - _display_started_on;
+    return diff > DISPLAY_DURATION;
 }
 
 void LCD::displaySensors(Sensors sensors)
 {
-    lcd_I2C.clear();
-    lcd_I2C.setCursor(0, 0);
-    lcd_I2C.print("S1  S2  S3");
-    lcd_I2C.setCursor(0, 1);
-    char buffer[LCD_COLS];
-    auto moisture_readings = sensors.moisture_readings;
-    for (int i = 0; i < moisture_readings.size; i++)
+    if (!_enabled)
+        return;
+    if (sensors.moisture_readings != NULL)
     {
-        if (i == 0 || i == moisture_readings.size - 1)
+        lcd_I2C.clear();
+        lcd_I2C.setCursor(0, 0);
+        lcd_I2C.print("S1  S2  S3");
+        lcd_I2C.setCursor(0, 1);
+        String output = "";
+        char buffer[LCD_COLS];
+        auto moisture_readings = sensors.moisture_readings;
+        for (int i = 0; i < moisture_readings->size; i++)
         {
-            sprintf(buffer, "%3d", moisture_readings.values[i]);
+            if (i == 0 || i == moisture_readings->size - 1)
+            {
+                sprintf(buffer, "%3d", moisture_readings->values[i]);
+            }
+            else
+            {
+                sprintf(buffer, " %3d ", moisture_readings->values[i]);
+            }
+            output += buffer;
         }
-        else
-        {
-            sprintf(buffer, " %3d ", moisture_readings.values[i]);
-        }
+        lcd_I2C.print(output);
     }
-    lcd_I2C.print(buffer);
 }

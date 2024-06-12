@@ -1,9 +1,9 @@
 
 #include <stdlib.h>
 #include <DHT.h>
-#include "sensors.h";
-#include "mux.h";
-#include "power_managment.h";
+#include "sensors.h"
+#include "mux.h"
+#include "power_managment.h"
 #define DHTTYPE DHT22
 
 const int MOISTURE_IN[] = {0, 1, 2};
@@ -24,10 +24,17 @@ int clamp(int val, int min, int max)
 
 int getMoistureInPercent(int sensor_idx)
 {
-    int value = Mux.readMux(MOISTURE_IN[sensor_idx]);
-    int relative_0 = value - MOISTURE_WaterValue[sensor_idx];
     int max_val = MOISTURE_AirValue[sensor_idx] - MOISTURE_WaterValue[sensor_idx];
-    return relative_0;
+    int value = Mux.readMux(MOISTURE_IN[sensor_idx]);
+    Serial.print("S");
+    Serial.print(sensor_idx);
+    Serial.print(": ");
+    Serial.print(value);
+    int relative_0 = clamp(value - MOISTURE_WaterValue[sensor_idx], 0, max_val);
+    float result = ceil((relative_0 * 100.0) / max_val);
+    Serial.print(" | ");
+    Serial.println(result);
+    return 100 - (int)result;
 }
 
 // --- MoistureSensorReadings ---
@@ -47,13 +54,13 @@ String MoistureSensorReadings::toString()
     for (int i = 0; i < size; i++)
     {
         char buffer[20];
-        sprintf(buffer, "S%d: %d, ", i + 1, values[i]);
+        sprintf(buffer, "S%d: %d%%, ", i + 1, values[i]);
         output += buffer;
     }
 
     if (output.length() > 2)
     {
-        output = output.substring(0, output.length() - 3);
+        output = output.substring(0, output.length() - 2);
     }
     return output;
 }
@@ -62,38 +69,55 @@ String MoistureSensorReadings::toString()
 
 DHTSensorReadings Sensors::readDht()
 {
-    Mux.selectChannel(3, INPUT_PULLUP);
-    dht_readings.humidity = dht.readHumidity();
-    dht_readings.temperature = dht.readTemperature();
-    return dht_readings;
+    // Mux.selectChannel(3, INPUT_PULLUP);
+    // dht_readings.humidity = dht.readHumidity();
+    // dht_readings.temperature = dht.readTemperature();
+    // return dht_readings;
 }
 
 // --- Sensors ---
 
-MoistureSensorReadings Sensors::readMoisture()
+MoistureSensorReadings *Sensors::readMoisture()
 {
-    moisture_readings.size = MOISTURE_IN_COUNT;
-    moisture_readings.values = (int *)malloc(moisture_readings.size * sizeof(int));
-    if (moisture_readings.values == NULL)
+    moisture_readings = new MoistureSensorReadings(MOISTURE_IN_COUNT);
+    moisture_readings->size = MOISTURE_IN_COUNT;
+    if (moisture_readings->values == NULL)
     {
         // Handle memory allocation failure
-        moisture_readings.size = 0;
+        moisture_readings->size = 0;
         return moisture_readings;
     }
 
     for (int channel = 0; channel < MOISTURE_IN_COUNT; channel++)
     {
-        moisture_readings.values[channel] = getMoistureInPercent(channel);
+        moisture_readings->values[channel] = getMoistureInPercent(channel);
     }
     return moisture_readings;
 }
 
-void Sensors::read()
+bool Sensors::read()
 {
     Managment.powerUpSensors();
-    readDht();
     readMoisture();
+    // readDht();
+    _last_sensor_read_time = millis();
     Managment.powerDownSensors();
+    return true;
+    // if (sensors_on)
+    // {
+    //     readMoisture();
+    //     // readDht();
+    //     _last_sensor_read_time = millis();
+    //     Managment.powerDownSensors();
+    //     return true;
+    // }
+
+    // auto sensors_powering_up = Managment.areSensorsPoweringUp();
+    // if (!sensors_on && !sensors_powering_up)
+    // {
+    //     Managment.powerUpSensors();
+    // }
+    // return false;
 }
 
 void Sensors::setup()
@@ -103,10 +127,12 @@ void Sensors::setup()
 
 String Sensors::toString()
 {
-    return moisture_readings.toString();
+    return moisture_readings->toString();
 }
 
-bool Sensors::shouldUpdate(unsigned int current_time)
+bool Sensors::shouldUpdate(unsigned long current_time)
 {
-    return current_time - last_sensor_read_time >= MOISTURE_READ_INTERVAL;
+    if (_last_sensor_read_time == 0)
+        return true;
+    return current_time - _last_sensor_read_time >= MOISTURE_READ_INTERVAL;
 }

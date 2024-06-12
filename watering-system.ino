@@ -11,60 +11,72 @@ LCD lcd;
 
 void power_down()
 {
-    delay(1000);
+    delay(100);
 }
 
-// void power_down()
-// {
-//     Serial.flush();
-//     Bluetooth::flush();
-//     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+void power_down_hard()
+{
+    Serial.flush();
+    Bluetooth::flush();
+    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
 
-//     Serial.begin(9600);
-//     Bluetooth::setup();
-// }
+    Serial.begin(9600);
+}
 
 void setup()
 {
     Serial.begin(9600);
-    Bluetooth::setup();
-    Serial.println("BT is ready.");
+    // Bluetooth::setup();
+    // Serial.println("BT is setup.");
+
     lcd.setup();
-    Serial.println("LCD is ready.");
-    attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), wakeUp, RISING);
+    Serial.println("LCD is setup.");
+
+    pinMode(SWITCH_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), wakeUp, FALLING);
     Serial.println("Interrupts are ready.");
+
     sensors.setup();
     Serial.println("Sensors are ready.");
+
     Managment.setup();
     Serial.println("Power managment is ready.");
+
     Serial.println("Arduino is ready!");
 }
 
 void loop()
 {
+    Serial.println("I'm awake");
     unsigned long current_time = millis();
+
+    if (lcd.wokeUp())
+    {
+        lcd.turn_on();
+        lcd.displaySensors(sensors);
+    }
+
+    if (lcd.shouldPowerDown(current_time))
+    {
+        lcd.turn_off();
+    }
 
     if (sensors.shouldUpdate(current_time))
     {
-        sensors.read();
-        auto formatted_readings = sensors.toString();
-        Serial.println(formatted_readings);
-        Bluetooth::send(formatted_readings);
-    }
-
-    if (lcd.isActive())
-    {
-        if (lcd.shouldPowerDown(current_time))
+        auto areUpdated = sensors.read();
+        if (areUpdated)
         {
-            lcd.turn_off();
-        }
-        else
-        {
-            lcd.displaySensors(sensors);
+            if (lcd.isActive())
+            {
+                lcd.displaySensors(sensors);
+            }
+            auto formatted_readings = sensors.toString();
+            Serial.println(formatted_readings);
         }
     }
 
-    power_down();
+    // power_down();
+    power_down_hard();
 }
 
 void wakeUp()
