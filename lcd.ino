@@ -92,27 +92,31 @@ void LCD::displaySensors(Sensors sensors)
 {
     if (!_enabled)
         return;
-    if (sensors.moisture_readings != NULL)
-    {
-        lcd_I2C.clear();
-        lcd_I2C.setCursor(0, 0);
-        lcd_I2C.print("S1  S2  S3");
-        lcd_I2C.setCursor(0, 1);
-        String output = "";
-        char buffer[LCD_COLS];
-        auto moisture_readings = sensors.moisture_readings;
-        for (int i = 0; i < moisture_readings->size; i++)
-        {
-            if (i == 0 || i == moisture_readings->size - 1)
-            {
-                sprintf(buffer, "%3d", moisture_readings->values[i]);
-            }
-            else
-            {
-                sprintf(buffer, " %3d ", moisture_readings->values[i]);
-            }
-            output += buffer;
-        }
-        lcd_I2C.print(output);
-    }
+    if (sensors.moisture_readings == NULL)
+        return;
+
+    lcd_I2C.clear();
+    auto moistureStr = sensors.moisture_readings->toString(false);
+    int splitIndex = moistureStr.indexOf(" | rH3");
+    String line1 = moistureStr.substring(0, splitIndex);
+    String line2 = moistureStr.substring(splitIndex + 3); // Skip " | "
+
+    // Display the first line
+    lcd_I2C.setCursor(0, 0);
+    lcd_I2C.print(line1);
+
+    // Display the second line
+    lcd_I2C.setCursor(0, 1);
+    lcd_I2C.print(line2);
+
+    auto dhtStr = sensors.dht_readings->toString();
+    splitIndex = dhtStr.indexOf(" Temp");
+    String line3 = dhtStr.substring(0, splitIndex);
+    String line4 = dhtStr.substring(splitIndex + 1); // Skip " | "
+    lcd_I2C.setCursor(0, 2);
+    lcd_I2C.print(line3);
+
+    // Display the second line
+    lcd_I2C.setCursor(0, 3);
+    lcd_I2C.print(line4);
 }

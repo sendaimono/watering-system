@@ -15,7 +15,7 @@ struct MoistureSensorReadings
 
     ~MoistureSensorReadings();
 
-    String toString();
+    String toString(bool);
 };
 
 struct DHTSensorReadings
@@ -31,10 +31,10 @@ class Sensors
 public:
     void setup();
     bool shouldUpdate(unsigned long current_time);
-    bool read();
+    bool read(unsigned long current_time);
     String toString();
     MoistureSensorReadings *readMoisture();
-    DHTSensorReadings readDht();
+    DHTSensorReadings *readDht();
 
     MoistureSensorReadings *moisture_readings;
     DHTSensorReadings *dht_readings;

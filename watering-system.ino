@@ -45,11 +45,8 @@ void setup()
     Serial.println("Arduino is ready!");
 }
 
-void loop()
+void handle_lcd(unsigned long current_time)
 {
-    Serial.println("I'm awake");
-    unsigned long current_time = millis();
-
     if (lcd.wokeUp())
     {
         lcd.turn_on();
@@ -60,10 +57,13 @@ void loop()
     {
         lcd.turn_off();
     }
+}
 
+void handle_sensors(unsigned long current_time)
+{
     if (sensors.shouldUpdate(current_time))
     {
-        auto areUpdated = sensors.read();
+        auto areUpdated = sensors.read(current_time);
         if (areUpdated)
         {
             if (lcd.isActive())
@@ -74,6 +74,14 @@ void loop()
             Serial.println(formatted_readings);
         }
     }
+}
+
+void loop()
+{
+    Serial.println("I'm awake");
+    unsigned long current_time = millis();
+    handle_lcd(current_time);
+    handle_sensors(current_time);
 
     // power_down();
     power_down_hard();
