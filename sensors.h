@@ -1,46 +1,17 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-unsigned const int MOISTURE_READ_INTERVAL = 1000;
+const int MOISTURE_IN[] = {A0, A1};
+const int MOISTURE_IN_COUNT = sizeof(MOISTURE_IN) / sizeof(MOISTURE_IN[0]);
+const int MOISTURE_AirValue[] = {580, 585};
+const int MOISTURE_WaterValue[] = {39, 38};
+const int PUMPS[] = {7, 8};
+volatile int READINGS[] = {0, 0};
+volatile long LAST_TIME_SENSORS_READ = 0;
+const int MOISTURE_READ_INTERVAL = 30 * 1000;
 
-struct MoistureSensorReadings
-{
-    int *values;
-    int size;
-
-    MoistureSensorReadings(int s) : size(s)
-    {
-        values = (int *)malloc(s * sizeof(int));
-    };
-
-    ~MoistureSensorReadings();
-
-    String toString(bool);
-};
-
-struct DHTSensorReadings
-{
-    float temperature = 0;
-    float humidity = 0;
-
-    String toString();
-};
-
-class Sensors
-{
-public:
-    void setup();
-    bool shouldUpdate(unsigned long current_time);
-    bool read(unsigned long current_time);
-    String toString();
-    MoistureSensorReadings *readMoisture();
-    DHTSensorReadings *readDht();
-
-    MoistureSensorReadings *moisture_readings;
-    DHTSensorReadings *dht_readings;
-
-private:
-    unsigned long _last_sensor_read_time = 0;
-};
+void readMoisture(unsigned long current_time);
+void setupSensors();
+bool shouldUpdateSensorValues(unsigned long current_time);
 
 #endif

@@ -1,35 +1,14 @@
-#ifndef LCD_H
-#define LCD_H
-#include "power_managment.h"
-#include "sensors.h"
+#ifndef PUMP_H
+#define PUMP_H
+#define MINIMUM_START_UP 40
+#define MAXIMUM_CUT_OFF 50
 
-enum section_n
-{
-    SECTION_1 = 6
-};
+bool IS_WATERING = false;
+int CURRENT_WATERING_PUMP = -1;
+const int MAX_WATERING_DURATION = 30 * 1000;
+unsigned long WATERING_STARTED_AT = 0;
 
-class Pump
-{
-    bool _is_running;
-
-public:
-    bool isRunning();
-    void turnOn();
-    void turnOff();
-    void enableSection(section_n section);
-    void disableSection(section_n section);
-};
-
-class Watering
-{
-    unsigned long _started_on = 0;
-
-public:
-    bool shouldStartWatering(Sensors sensors);
-    bool startWatering(unsigned long current);
-    bool decideIfShouldStop(unsigned long current);
-};
-
-Watering WateringSystem;
+void pumpWater(unsigned long current_time);
+void setupPumps();
 
 #endif

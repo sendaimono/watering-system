@@ -1,26 +1,18 @@
-#include <LowPower.h>
 #include "sensors.h"
-#include "bluetooth.h"
-#include "lcd.h"
 #include "power_managment.h"
-
+#include "pump.h"
 #define SWITCH_PIN 2
 
-Sensors sensors;
-LCD lcd;
+unsigned long loop_count = 0;
 
-void power_down()
-{
-    delay(100);
-}
-
-void power_down_hard()
+void sleep()
 {
     Serial.flush();
-    Bluetooth::flush();
-    LowPower.powerDown(SLEEP_1S, ADC_OFF, BOD_OFF);
+    // Bluetooth::flush();
+    Managment.lowPower(SLEEP_8S);
 
     Serial.begin(9600);
+    loop_count++;
 }
 
 void setup()
@@ -29,14 +21,17 @@ void setup()
     // Bluetooth::setup();
     // Serial.println("BT is setup.");
 
-    lcd.setup();
-    Serial.println("LCD is setup.");
+    // lcd.setup();
+    // Serial.println("LCD is setup.");
 
-    pinMode(SWITCH_PIN, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), wakeUp, FALLING);
-    Serial.println("Interrupts are ready.");
+    // pinMode(SWITCH_PIN, INPUT_PULLUP);
+    // attachInterrupt(digitalPinToInterrupt(SWITCH_PIN), wakeUp, FALLING);
+    // Serial.println("Interrupts are ready.");
 
-    sensors.setup();
+    setupPumps();
+    Serial.println("Pumps are ready.");
+
+    setupSensors();
     Serial.println("Sensors are ready.");
 
     Managment.setup();
@@ -45,49 +40,62 @@ void setup()
     Serial.println("Arduino is ready!");
 }
 
-void handle_lcd(unsigned long current_time)
-{
-    if (lcd.wokeUp())
-    {
-        lcd.turn_on();
-        lcd.displaySensors(sensors);
-    }
+// void handle_lcd(unsigned long current_time)
+// {
+//     if (lcd.wokeUp())
+//     {
+//         lcd.turn_on();
+//         lcd.displaySensors(sensors);
+//     }
 
-    if (lcd.shouldPowerDown(current_time))
-    {
-        lcd.turn_off();
-    }
-}
+//     if (lcd.shouldPowerDown(current_time))
+//     {
+//         lcd.turn_off();
+//     }
+// }
 
-void handle_sensors(unsigned long current_time)
+// void handle_sensors(unsigned long current_time)
+// {
+//     if (sensors.shouldUpdate(current_time))
+//     {
+//         auto areUpdated = sensors.read(current_time);
+//         if (areUpdated)
+//         {
+//             if (lcd.isActive())
+//             {
+//                 lcd.displaySensors(sensors);
+//             }
+//             auto formatted_readings = sensors.toString();
+//             Serial.println(formatted_readings);
+//         }
+//     }
+// }
+
+void handleSensors(unsigned long current_time)
 {
-    if (sensors.shouldUpdate(current_time))
+    if (shouldUpdateSensorValues(current_time))
     {
-        auto areUpdated = sensors.read(current_time);
-        if (areUpdated)
-        {
-            if (lcd.isActive())
-            {
-                lcd.displaySensors(sensors);
-            }
-            auto formatted_readings = sensors.toString();
-            Serial.println(formatted_readings);
-        }
+        Serial.println("Reading sensors...");
+        readMoisture(current_time);
     }
 }
 
 void loop()
 {
-    Serial.println("I'm awake");
-    unsigned long current_time = millis();
-    handle_lcd(current_time);
-    handle_sensors(current_time);
+    Serial.println("--------------");
+    // + 8 second to cope with low power mode;
+    unsigned long current_time = millis() + (loop_count * 8000);
 
-    // power_down();
-    power_down_hard();
+    Serial.print("Loop started at: ");
+    Serial.println((unsigned long)current_time);
+
+    // handle_lcd(current_time);
+    handleSensors(current_time);
+    pumpWater(current_time);
+    sleep();
 }
 
-void wakeUp()
-{
-    lcd.wakeUp();
-}
+// void wakeUp()
+// {
+//     lcd.wakeUp();
+// }
